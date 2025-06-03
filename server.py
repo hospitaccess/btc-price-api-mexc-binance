@@ -31,6 +31,9 @@ def btc_history():
             }
 
             response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=10)
+            print("URL:", response.url)
+            print("Status:", response.status_code)
             data = response.json()
             print("MEXC URL:", response.url)
             print("MEXC Status:", response.status_code)
