@@ -8,13 +8,16 @@ app = Flask(__name__)
 @app.route("/btc-history")
 def btc_history():
     try:
-        interval = request.args.get("interval", "1m")   # "1m", "3m", "5m", "15m", etc.
-        limit = int(request.args.get("limit", 500))     # nombre de bougies
-        source = request.args.get("source", "mexc")     # "mexc" ou "binance"
+        interval = request.args.get("interval", "1m")
+        limit = int(request.args.get("limit", 500))
+        source = request.args.get("source", "mexc")
 
         if source == "mexc":
-            # Convertir "1m" → int minutes
-            int_map = {"1m": 1, "3m": 3, "5m": 5, "15m": 15, "30m": 30, "60m": 60}
+            int_map = {
+                "1m": 1, "3m": 3, "5m": 5, "15m": 15,
+                "30m": 30, "60m": 60
+            }
+
             if interval not in int_map:
                 return jsonify({"error": "Interval non pris en charge pour MEXC"}), 400
 
@@ -30,14 +33,16 @@ def btc_history():
                 "end": end_time
             }
 
-            response = requests.get(url, params=params)
+            print("🔁 Envoi de la requête vers MEXC...")
+            print("Params:", params)
+
             response = requests.get(url, params=params, timeout=10)
+            print("✅ Requête envoyée")
             print("URL:", response.url)
-            print("Status:", response.status_code)
+            print("Statut:", response.status_code)
+
             data = response.json()
-            print("MEXC URL:", response.url)
-            print("MEXC Status:", response.status_code)
-            print("MEXC Response:", response.text[:300])  # pour ne pas afficher 10 000 lignes
+            print("Réponse MEXC:", str(data)[:300])
 
             if not data.get("data"):
                 return jsonify({"error": "No data returned from MEXC"}), 502
@@ -45,7 +50,7 @@ def btc_history():
             result = []
             for d in data["data"]:
                 result.append({
-                    "timestamp": datetime.utcfromtimestamp(d[0] // 1000).isoformat() + "Z",
+                    "timestamp": datetime.utcfromtimestamp(d[0] / 1000).isoformat() + "Z",
                     "open": d[1],
                     "high": d[2],
                     "low": d[3],
@@ -56,36 +61,13 @@ def btc_history():
             return jsonify(result)
 
         elif source == "binance":
-            url = "https://fapi.binance.com/fapi/v1/klines"
-            params = {
-                "symbol": "BTCUSDT",
-                "interval": interval,
-                "limit": limit
-            }
-
-            response = requests.get(url, params=params)
-            data = response.json()
-
-            if not isinstance(data, list):
-                return jsonify({"error": "No data returned from Binance"}), 502
-
-            result = []
-            for d in data:
-                result.append({
-                    "timestamp": datetime.utcfromtimestamp(d[0] // 1000).isoformat() + "Z",
-                    "open": d[1],
-                    "high": d[2],
-                    "low": d[3],
-                    "close": d[4],
-                    "volume": d[5]
-                })
-
-            return jsonify(result)
+            return jsonify({"error": "Binance not implemented yet"}), 501
 
         else:
             return jsonify({"error": "Unsupported source"}), 400
 
     except Exception as e:
+        print("❌ Erreur:", str(e))
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
